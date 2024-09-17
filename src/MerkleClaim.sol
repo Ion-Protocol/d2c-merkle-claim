@@ -207,7 +207,7 @@ contract MerkleClaim {
     }
 
 	/**
-	* @dev helper function to preform validity check in a single line
+	* @dev helper function to perform validity check in a single line
 	*/
 	function _isValid(
 		bytes32[] calldata proof,
