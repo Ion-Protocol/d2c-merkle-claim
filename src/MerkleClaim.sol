@@ -34,13 +34,13 @@ contract MerkleClaim {
 
     event PendingPeriodChange(uint256 newPendingPeriod);
 
-	uint constant MIN_PENDING_PERIOD = 1 hours;
+	uint128 constant MIN_PENDING_PERIOD = 1 hours;
 
     // internal but will have a getter provided
     bytes32 internal _root;
 
-    uint256 public pendingPeriod = MIN_PENDING_PERIOD;
-    uint256 public lastPendingUpdate;
+    uint128 public pendingPeriod = MIN_PENDING_PERIOD;
+    uint128 public lastPendingUpdate;
     bytes32 public pending;
     address public owner;
     address public rootRole;
@@ -107,7 +107,7 @@ contract MerkleClaim {
      * time to detect a malicious root push and pause the contract
      * @param _newPendingPeriod to set in seconds; cannot be less than the MIN_PENDING_PERIOD
      */
-    function setPendingPeriod(uint256 _newPendingPeriod) external onlyOwner {
+    function setPendingPeriod(uint128 _newPendingPeriod) external onlyOwner {
 		if(_newPendingPeriod < MIN_PENDING_PERIOD){
 			revert INVALID_PARAMS();
 		}
@@ -153,7 +153,7 @@ contract MerkleClaim {
     function setPendingRoot(bytes32 _newRoot) external {
         if (msg.sender == rootRole) {
             pending = _newRoot;
-            lastPendingUpdate = block.timestamp;
+            lastPendingUpdate = uint128(block.timestamp);
             emit NewPendingRoot(_newRoot);
         } else {
             revert ROOT_ROLE_ONLY();
@@ -227,10 +227,11 @@ contract MerkleClaim {
         if (block.timestamp < (lastPendingUpdate + pendingPeriod) || pending == bytes32(0)) {
             return _root;
         }
-        _root = pending;
+        bytes32 _proposedRoot = pending;
+        _root = _proposedRoot;
         delete pending;
 
-        emit NewActiveRoot(_root);
-        return _root;
+        emit NewActiveRoot(_proposedRoot);
+        return _proposedRoot;
     }
 }

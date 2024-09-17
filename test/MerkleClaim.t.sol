@@ -20,7 +20,7 @@ contract EXAMPLEERC20 is ERC20 {
 contract MerkleClaimTest is Test {
     address ROOT_ROLE = makeAddr("ROOT_ROLE");
     MerkleClaim public claim;
-    uint256 constant FOUR_HOURS = 60 * 60 * 4;
+    uint128 constant FOUR_HOURS = 60 * 60 * 4;
 
     function setUp() public {
         claim = new MerkleClaim(ROOT_ROLE);
