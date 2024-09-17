@@ -157,12 +157,7 @@ contract NucleusClaim {
         address[] calldata assets,
         uint256[] calldata totalClaimableForAsset
     ) external whenNotPaused {
-        bytes32 _root = _getRoot();
-        bytes32 leafHash = keccak256(bytes.concat(keccak256(abi.encode(user, assets, totalClaimableForAsset))));
-        bool valid = MerkleProofLib.verifyCalldata(proof, _root, leafHash);
-
-        if (valid) {
-            assert(assets.length == totalClaimableForAsset.length);
+        if (assets.length == totalClaimableForAsset.length && _isValid(proof, user, assets, totalClaimableForAsset)) {
             for (uint256 i; i < assets.length;) {
                 address asset = assets[i];
                 uint256 rewards = totalClaimableForAsset[i] - usersClaimedAmountOfAsset[user][asset];
@@ -185,6 +180,18 @@ contract NucleusClaim {
         }
         return pending;
     }
+
+	/// @dev helper function to preform validity check in a single line
+	function _isValid(
+		bytes32[] calldata proof,
+        address user,
+        address[] calldata assets,
+        uint256[] calldata totalClaimableForAsset
+	) internal returns(bool valid){
+        bytes32 _root = _getRoot();
+        bytes32 leafHash = keccak256(bytes.concat(keccak256(abi.encode(user, assets, totalClaimableForAsset))));
+        valid = MerkleProofLib.verifyCalldata(proof, _root, leafHash);
+	}
 
     /// @dev heper function to return root, but also switch to the pending root if the pending period has elapsed
     function _getRoot() internal returns (bytes32) {
