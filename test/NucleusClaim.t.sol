@@ -120,7 +120,6 @@ contract NucleusClaimTest is Test {
         vm.prank(ROOT_ROLE);
         vm.expectRevert(ROOT_ROLE_ONLY.selector);
         claim.setPendingRoot(maliciousRoot);
-
         // owner now waits the period and unpauses
         vm.warp(block.timestamp + FOUR_HOURS);
         claim.unpause();

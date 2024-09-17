@@ -13,8 +13,11 @@ error INVALID_PARAMS();
 /**
  * @title NucleusClaim
  * @notice a claim contract to allow reward distribution based on verified merkle leafs.
+ * @custom:security-contact security@molecularlabs.io
  */
 contract NucleusClaim {
+    using SafeTransferLib for address;
+
     event NewOwner(address newOwner);
 
     event NewRootRole(address newRootRole);
@@ -31,12 +34,12 @@ contract NucleusClaim {
 
     event PendingPeriodChange(uint256 newPendingPeriod);
 
-    using SafeTransferLib for address;
+	uint constant MIN_PENDING_PERIOD = 1 hours;
 
     // internal but will have a getter provided
     bytes32 internal _root;
 
-    uint256 public pendingPeriod;
+    uint256 public pendingPeriod = MIN_PENDING_PERIOD;
     uint256 public lastPendingUpdate;
     bytes32 public pending;
     address public owner;
@@ -46,7 +49,9 @@ contract NucleusClaim {
     mapping(address => bool) public hasPauseRole;
     mapping(address => mapping(address => uint256)) public usersClaimedAmountOfAsset;
 
-    /// @param _rootRole address to receive the root role permission
+	/**
+	* @param _rootRole address to receive the root role permission
+	*/
     constructor(address _rootRole) {
         owner = msg.sender;
         emit NewOwner(msg.sender);
@@ -68,14 +73,18 @@ contract NucleusClaim {
         }
         _;
     }
-
-    /// @dev only owner can unpause the contract
+	
+	/**
+	* @dev only owner can unpause the contract
+	*/
     function unpause() external onlyOwner {
         isPaused = false;
         emit Unpause();
     }
 
-    /// @dev only hasPauseRole roles can pause the contract
+	/**
+	* @dev only hasPauseRole roles can pause the contract
+	*/
     function pause() external {
         if (hasPauseRole[msg.sender]) {
             isPaused = true;
@@ -85,16 +94,23 @@ contract NucleusClaim {
         }
     }
 
-    /// @dev owner can adjust pause roles
+	/**
+	* @dev owner can adjust pause roles
+	*/
     function setPauseRole(address _pauser, bool _hasPauseRole) external onlyOwner {
         hasPauseRole[_pauser] = _hasPauseRole;
     }
 
     /**
-     * @dev sets the pending period. This is the time that a newly published root will remain pending before becoming active. This allows the team time to detect a malicious root push and pause the contract
-     * @param _newPendingPeriod to set in seconds
+     * @dev sets the pending period. This is the time that a newly published
+     * root will remain pending before becoming active. This allows the team
+     * time to detect a malicious root push and pause the contract
+     * @param _newPendingPeriod to set in seconds; cannot be less than the MIN_PENDING_PERIOD
      */
     function setPendingPeriod(uint256 _newPendingPeriod) external onlyOwner {
+		if(_newPendingPeriod < MIN_PENDING_PERIOD){
+			revert INVALID_PARAMS();
+		}
         pendingPeriod = _newPendingPeriod;
         emit PendingPeriodChange(_newPendingPeriod);
     }
@@ -118,7 +134,7 @@ contract NucleusClaim {
         external
         onlyOwner
     {
-        if (assets.length == amounts.length) {
+        if (assets.length == amounts.length && receiver != address(0)) {
             for (uint256 i; i < assets.length;) {
                 assets[i].safeTransfer(receiver, amounts[i]);
                 unchecked {
@@ -157,11 +173,18 @@ contract NucleusClaim {
         address[] calldata assets,
         uint256[] calldata totalClaimableForAsset
     ) external whenNotPaused {
+		// only continue to transfer assets if the arrays length are the same and the merkle proof is valid
         if (assets.length == totalClaimableForAsset.length && _isValid(proof, user, assets, totalClaimableForAsset)) {
+
+			mapping(address => uint256) storage claimAmountsByUserKey = usersClaimedAmountOfAsset[user];
             for (uint256 i; i < assets.length;) {
                 address asset = assets[i];
-                uint256 rewards = totalClaimableForAsset[i] - usersClaimedAmountOfAsset[user][asset];
-                usersClaimedAmountOfAsset[user][asset] = totalClaimableForAsset[i];
+				// rewards to distribute for each asset are = totalClaimable - claimedAmount
+				// this should never underflow as rewards should never decrease and a user should have never claimed more than they
+				// have in total.
+				// This accounting method is useful to simplify backend logic/security while preventing double claims
+                uint256 rewards = totalClaimableForAsset[i] - claimAmountsByUserKey[asset];
+                claimAmountsByUserKey[asset] = totalClaimableForAsset[i];
                 asset.safeTransfer(user, rewards);
                 unchecked {
                     ++i;
@@ -173,7 +196,9 @@ contract NucleusClaim {
         }
     }
 
-    /// @dev public function to return root, returns pending root instead if the pending period has elapsed
+	/**
+	* @dev public function to return root, returns pending root instead if the pending period has elapsed
+	*/
     function root() public view returns (bytes32) {
         if (pending == _root || block.timestamp < (lastPendingUpdate + pendingPeriod)) {
             return _root;
@@ -181,19 +206,23 @@ contract NucleusClaim {
         return pending;
     }
 
-	/// @dev helper function to preform validity check in a single line
+	/**
+	* @dev helper function to preform validity check in a single line
+	*/
 	function _isValid(
 		bytes32[] calldata proof,
         address user,
         address[] calldata assets,
         uint256[] calldata totalClaimableForAsset
 	) internal returns(bool valid){
-        bytes32 _root = _getRoot();
+        bytes32 activeRoot = _getRoot();
         bytes32 leafHash = keccak256(bytes.concat(keccak256(abi.encode(user, assets, totalClaimableForAsset))));
-        valid = MerkleProofLib.verifyCalldata(proof, _root, leafHash);
+        valid = MerkleProofLib.verifyCalldata(proof, activeRoot, leafHash);
 	}
 
-    /// @dev heper function to return root, but also switch to the pending root if the pending period has elapsed
+	/**
+	* @dev helper function to return root, but also switch to the pending root if the pending period has elapsed
+	*/
     function _getRoot() internal returns (bytes32) {
         if (block.timestamp < (lastPendingUpdate + pendingPeriod) || pending == bytes32(0)) {
             return _root;
@@ -201,7 +230,7 @@ contract NucleusClaim {
         _root = pending;
         delete pending;
 
-        emit NewActiveRoot(pending);
+        emit NewActiveRoot(_root);
         return _root;
     }
 }
