@@ -86,7 +86,7 @@ jobs:
         run: gem install awesome_bot
 
       - name: Validate URLs
-        run: awesome_bot ./*.md src/**/*.sol --allow-dupe --allow-redirect --request-delay 0.4 --white-list mainnet.infura.io/v3,localhost
+        run: awesome_bot ./*.md src/*.sol --allow-dupe --allow-redirect --request-delay 0.4 --white-list mainnet.infura.io/v3,localhost
 
   solhint:
     runs-on: ${{ matrix.os }}
