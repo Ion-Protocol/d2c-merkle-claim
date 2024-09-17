@@ -141,4 +141,4 @@ jobs:
 
       - name: Run Slither
         run: |
-          slither src
+          export SOLC_VERSION='0.8.21' && slither src
