@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.21;
+pragma solidity =0.8.21;
 
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {MerkleProofLib} from "solady/utils/MerkleProofLib.sol";
@@ -10,27 +10,27 @@ error PAUSE_ROLE_ONLY();
 error PAUSED();
 error INVALID_PARAMS();
 
-event NewOwner(address newOwner);
-
-event NewRootRole(address newRootRole);
-
-event NewPendingRoot(bytes32 newPendingRoot);
-
-event NewActiveRoot(bytes32 newActiveRoot);
-
-event Pause();
-
-event Unpause();
-
-event Claim(address user, address[] assets, uint256[] amounts);
-
-event PendingPeriodChange(uint256 newPendingPeriod);
-
 /**
  * @title NucleusClaim
  * @notice a claim contract to allow reward distribution based on verified merkle leafs.
  */
 contract NucleusClaim {
+    event NewOwner(address newOwner);
+
+    event NewRootRole(address newRootRole);
+
+    event NewPendingRoot(bytes32 newPendingRoot);
+
+    event NewActiveRoot(bytes32 newActiveRoot);
+
+    event Pause();
+
+    event Unpause();
+
+    event Claim(address user, address[] assets, uint256[] amounts);
+
+    event PendingPeriodChange(uint256 newPendingPeriod);
+
     using SafeTransferLib for address;
 
     // internal but will have a getter provided
