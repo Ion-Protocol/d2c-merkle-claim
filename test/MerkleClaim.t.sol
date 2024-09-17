@@ -2,7 +2,7 @@
 pragma solidity =0.8.21;
 
 import {Test, console} from "forge-std/Test.sol";
-import "src/NucleusClaim.sol";
+import "src/MerkleClaim.sol";
 import {ERC20} from "solady/tokens/ERC20.sol";
 
 contract EXAMPLEERC20 is ERC20 {
@@ -17,13 +17,13 @@ contract EXAMPLEERC20 is ERC20 {
     }
 }
 
-contract NucleusClaimTest is Test {
+contract MerkleClaimTest is Test {
     address ROOT_ROLE = makeAddr("ROOT_ROLE");
-    NucleusClaim public claim;
+    MerkleClaim public claim;
     uint256 constant FOUR_HOURS = 60 * 60 * 4;
 
     function setUp() public {
-        claim = new NucleusClaim(ROOT_ROLE);
+        claim = new MerkleClaim(ROOT_ROLE);
         claim.setPendingPeriod(FOUR_HOURS);
     }
 

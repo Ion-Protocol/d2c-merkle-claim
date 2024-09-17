@@ -11,11 +11,11 @@ error PAUSED();
 error INVALID_PARAMS();
 
 /**
- * @title NucleusClaim
+ * @title MerkleClaim
  * @notice a claim contract to allow reward distribution based on verified merkle leafs.
  * @custom:security-contact security@molecularlabs.io
  */
-contract NucleusClaim {
+contract MerkleClaim {
     using SafeTransferLib for address;
 
     event NewOwner(address newOwner);
