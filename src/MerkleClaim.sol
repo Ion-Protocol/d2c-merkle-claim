@@ -34,7 +34,7 @@ contract MerkleClaim {
 
     event PendingPeriodChange(uint256 newPendingPeriod);
 
-	uint128 constant MIN_PENDING_PERIOD = 1 hours;
+    uint128 constant MIN_PENDING_PERIOD = 1 hours;
 
     // Internal but will have a getter provided.
     bytes32 internal _root;
@@ -49,9 +49,9 @@ contract MerkleClaim {
     mapping(address => bool) public hasPauseRole;
     mapping(address => mapping(address => uint256)) public usersClaimedAmountOfAsset;
 
-	/**
-	* @param _rootRole address to receive the root role permission.
-	*/
+    /**
+     * @param _rootRole address to receive the root role permission.
+     */
     constructor(address _rootRole) {
         owner = msg.sender;
         emit NewOwner(msg.sender);
@@ -73,18 +73,18 @@ contract MerkleClaim {
         }
         _;
     }
-	
-	/**
-	* @dev Only owner can unpause the contract.
-	*/
+
+    /**
+     * @dev Only owner can unpause the contract.
+     */
     function unpause() external onlyOwner {
         isPaused = false;
         emit Unpause();
     }
 
-	/**
-	* @dev Only hasPauseRole roles can pause the contract.
-	*/
+    /**
+     * @dev Only hasPauseRole roles can pause the contract.
+     */
     function pause() external {
         if (hasPauseRole[msg.sender]) {
             isPaused = true;
@@ -94,11 +94,11 @@ contract MerkleClaim {
         }
     }
 
-	/**
-	* @dev Owner can adjust pause roles.
-	* @param _pauser address to give pause role to.
-	* @param _hasPauseRole true or false to set address role in the mapping.
-	*/
+    /**
+     * @dev Owner can adjust pause roles.
+     * @param _pauser address to give pause role to.
+     * @param _hasPauseRole true or false to set address role in the mapping.
+     */
     function setPauseRole(address _pauser, bool _hasPauseRole) external onlyOwner {
         hasPauseRole[_pauser] = _hasPauseRole;
     }
@@ -110,9 +110,9 @@ contract MerkleClaim {
      * @param _newPendingPeriod to set in seconds; cannot be less than the MIN_PENDING_PERIOD.
      */
     function setPendingPeriod(uint128 _newPendingPeriod) external onlyOwner {
-		if(_newPendingPeriod < MIN_PENDING_PERIOD){
-			revert INVALID_PARAMS();
-		}
+        if (_newPendingPeriod < MIN_PENDING_PERIOD) {
+            revert INVALID_PARAMS();
+        }
         pendingPeriod = _newPendingPeriod;
         emit PendingPeriodChange(_newPendingPeriod);
     }
@@ -175,16 +175,15 @@ contract MerkleClaim {
         address[] calldata assets,
         uint256[] calldata totalClaimableForAsset
     ) external whenNotPaused {
-		// only continue to transfer assets if the arrays length are the same and the merkle proof is valid
+        // only continue to transfer assets if the arrays length are the same and the merkle proof is valid
         if (assets.length == totalClaimableForAsset.length && _isValid(proof, user, assets, totalClaimableForAsset)) {
-
-			mapping(address => uint256) storage claimAmountsByUserKey = usersClaimedAmountOfAsset[user];
+            mapping(address => uint256) storage claimAmountsByUserKey = usersClaimedAmountOfAsset[user];
             for (uint256 i; i < assets.length;) {
                 address asset = assets[i];
-				// rewards to distribute for each asset are = totalClaimable - claimedAmount
-				// this should never underflow as rewards should never decrease and a user should have never claimed more than they
-				// have in total.
-				// This accounting method is useful to simplify backend logic/security while preventing double claims
+                // rewards to distribute for each asset are = totalClaimable - claimedAmount
+                // this should never underflow as rewards should never decrease and a user should have never claimed more than they
+                // have in total.
+                // This accounting method is useful to simplify backend logic/security while preventing double claims
                 uint256 rewards = totalClaimableForAsset[i] - claimAmountsByUserKey[asset];
                 claimAmountsByUserKey[asset] = totalClaimableForAsset[i];
                 asset.safeTransfer(user, rewards);
@@ -198,9 +197,9 @@ contract MerkleClaim {
         }
     }
 
-	/**
-	* @dev Public function to return root, returns pending root instead if the pending period has elapsed.
-	*/
+    /**
+     * @dev Public function to return root, returns pending root instead if the pending period has elapsed.
+     */
     function root() public view returns (bytes32) {
         if (pending == _root || block.timestamp < (lastPendingUpdate + pendingPeriod)) {
             return _root;
@@ -208,27 +207,27 @@ contract MerkleClaim {
         return pending;
     }
 
-	/**
-	* @dev Helper function to perform validity check in a single line.
-	* @param proof The user provided merkle proof.
-	* @param user The user to receive rewards (part of leaf).
-	* @param assets The array of assets to claim for user.
-	* @param totalClaimableForAsset The array of amounts of each asset to claim.
-	*/
-	function _isValid(
-		bytes32[] calldata proof,
+    /**
+     * @dev Helper function to perform validity check in a single line.
+     * @param proof The user provided merkle proof.
+     * @param user The user to receive rewards (part of leaf).
+     * @param assets The array of assets to claim for user.
+     * @param totalClaimableForAsset The array of amounts of each asset to claim.
+     */
+    function _isValid(
+        bytes32[] calldata proof,
         address user,
         address[] calldata assets,
         uint256[] calldata totalClaimableForAsset
-	) internal returns(bool valid){
+    ) internal returns (bool valid) {
         bytes32 activeRoot = _getRoot();
         bytes32 leafHash = keccak256(bytes.concat(keccak256(abi.encode(user, assets, totalClaimableForAsset))));
         valid = MerkleProofLib.verifyCalldata(proof, activeRoot, leafHash);
-	}
+    }
 
-	/**
-	* @dev Helper function to return root, but also switch to the pending root if the pending period has elapsed.
-	*/
+    /**
+     * @dev Helper function to return root, but also switch to the pending root if the pending period has elapsed.
+     */
     function _getRoot() internal returns (bytes32) {
         if (block.timestamp < (lastPendingUpdate + pendingPeriod) || pending == bytes32(0)) {
             return _root;
