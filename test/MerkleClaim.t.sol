@@ -1,8 +1,8 @@
 // SPDX-License-Identifier: UNLICENSED
-pragma solidity ^0.8.21;
+pragma solidity =0.8.21;
 
 import {Test, console} from "forge-std/Test.sol";
-import "src/NucleusClaim.sol";
+import "src/MerkleClaim.sol";
 import {ERC20} from "solady/tokens/ERC20.sol";
 
 contract EXAMPLEERC20 is ERC20 {
@@ -17,13 +17,13 @@ contract EXAMPLEERC20 is ERC20 {
     }
 }
 
-contract NucleusClaimTest is Test {
+contract MerkleClaimTest is Test {
     address ROOT_ROLE = makeAddr("ROOT_ROLE");
-    NucleusClaim public claim;
-    uint256 constant FOUR_HOURS = 60 * 60 * 4;
+    MerkleClaim public claim;
+    uint128 constant FOUR_HOURS = 60 * 60 * 4;
 
     function setUp() public {
-        claim = new NucleusClaim(ROOT_ROLE);
+        claim = new MerkleClaim(ROOT_ROLE);
         claim.setPendingPeriod(FOUR_HOURS);
     }
 
@@ -120,7 +120,6 @@ contract NucleusClaimTest is Test {
         vm.prank(ROOT_ROLE);
         vm.expectRevert(ROOT_ROLE_ONLY.selector);
         claim.setPendingRoot(maliciousRoot);
-
         // owner now waits the period and unpauses
         vm.warp(block.timestamp + FOUR_HOURS);
         claim.unpause();
@@ -130,6 +129,35 @@ contract NucleusClaimTest is Test {
 
         for (uint256 i; i < assets.length; ++i) {
             assertEq(ERC20(assets[i]).balanceOf(user), amounts[i], "user did not receive correct amount of assets");
+        }
+    }
+
+    function testTransferAssetsOut(address[] memory assets) public {
+        // example ERC20 to etch our fake ERC20 addresses at
+        address example = address(new EXAMPLEERC20());
+
+        uint256[] memory amounts = new uint256[](assets.length);
+        for (uint256 i; i < amounts.length; ++i) {
+            // bound address by left shifting to not be a precompile
+            assets[i] = address(bytes20(assets[i]) << 8);
+            // bound amounts as the uint representation of the addresses to get random numbers without needing to generate another address array and bound its size
+            amounts[i] = bound(uint256(bytes32(bytes20(assets[i]))), 1, 100 ether);
+            // if first time with this address, etch it
+            if (assets[i].code.length == 0) {
+                vm.etch(assets[i], example.code);
+            }
+            // deal tokens to it. If an address is used multiple times, deal multiple times
+            uint256 prebal = ERC20(assets[i]).balanceOf(address(claim));
+            deal(assets[i], address(claim), (100 ether) + prebal);
+        }
+
+        // transfer the assets
+        claim.transferAssets(assets, amounts, address(this));
+        for (uint256 i; i < amounts.length; ++i) {
+            // assert not that these amounts are equal but rather that they modulo to zero...
+            // This is because an address can be delt multiple times, with the same token amount
+            // That's why this is also valid if 2x or 3x the amounts are received as it's withdrawn in 2 instances in the transferAssets arrays
+            assertEq(ERC20(assets[i]).balanceOf(address(this)) % amounts[i], 0, "Tokens not received");
         }
     }
 
