@@ -201,7 +201,7 @@ contract MerkleClaim {
      * @dev Public function to return root, returns pending root instead if the pending period has elapsed.
      */
     function root() public view returns (bytes32) {
-        if (pending == _root || block.timestamp < (lastPendingUpdate + pendingPeriod)) {
+        if (block.timestamp < (lastPendingUpdate + pendingPeriod) || pending == bytes32(0)) {
             return _root;
         }
         return pending;
