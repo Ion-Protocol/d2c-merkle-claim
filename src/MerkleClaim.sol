@@ -3,6 +3,7 @@ pragma solidity =0.8.21;
 
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {MerkleProofLib} from "solady/utils/MerkleProofLib.sol";
+import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 error OWNER_ONLY();
 error ROOT_ROLE_ONLY();
@@ -15,10 +16,8 @@ error INVALID_PARAMS();
  * @notice A claim contract to allow reward distribution based on verified merkle leafs.
  * @custom:security-contact security@molecularlabs.io
  */
-contract MerkleClaim {
+contract MerkleClaim is Ownable2Step{
     using SafeTransferLib for address;
-
-    event NewOwner(address newOwner);
 
     event NewRootRole(address newRootRole);
 
@@ -42,7 +41,6 @@ contract MerkleClaim {
     uint128 public pendingPeriod = MIN_PENDING_PERIOD;
     uint128 public lastPendingUpdate;
     bytes32 public pending;
-    address public owner;
     address public rootRole;
     bool public isPaused;
 
@@ -52,19 +50,9 @@ contract MerkleClaim {
     /**
      * @param _rootRole address to receive the root role permission.
      */
-    constructor(address _rootRole) {
-        owner = msg.sender;
-        emit NewOwner(msg.sender);
+    constructor(address _rootRole) Ownable(msg.sender){
         rootRole = _rootRole;
         emit NewRootRole(_rootRole);
-    }
-
-    modifier onlyOwner() {
-        if (msg.sender == owner) {
-            _;
-        } else {
-            revert OWNER_ONLY();
-        }
     }
 
     modifier whenNotPaused() {
