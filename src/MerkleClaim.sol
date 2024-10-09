@@ -47,7 +47,7 @@ contract MerkleClaim is Ownable2Step{
     bool public isPaused;
 
     mapping(address => bool) public hasPauseRole;
-    mapping(address => mapping(address => uint256)) public usersClaimedAmountOfAsset;
+    mapping(address user => mapping(address token => uint256)) public usersClaimedAmountOfAsset;
 
     /**
      * @param _rootRole address to receive the root role permission.
