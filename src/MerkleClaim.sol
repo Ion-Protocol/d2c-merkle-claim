@@ -16,7 +16,7 @@ error INVALID_PARAMS();
  * @notice A claim contract to allow reward distribution based on verified merkle leafs.
  * @custom:security-contact security@molecularlabs.io
  */
-contract MerkleClaim is Ownable2Step{
+contract MerkleClaim is Ownable2Step {
     using SafeTransferLib for address;
 
     event NewRootRole(address newRootRole);
@@ -34,8 +34,8 @@ contract MerkleClaim is Ownable2Step{
     event PendingPeriodChange(uint256 newPendingPeriod);
 
     event SetPauseRole(address pauser);
-    
-    uint128 constant public MIN_PENDING_PERIOD = 1 hours;
+
+    uint128 public constant MIN_PENDING_PERIOD = 1 hours;
 
     // Internal but will have a getter provided.
     bytes32 internal _root;
@@ -52,7 +52,7 @@ contract MerkleClaim is Ownable2Step{
     /**
      * @param _rootRole address to receive the root role permission.
      */
-    constructor(address _rootRole) Ownable(msg.sender){
+    constructor(address _rootRole) Ownable(msg.sender) {
         rootRole = _rootRole;
         emit NewRootRole(_rootRole);
     }

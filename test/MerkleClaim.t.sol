@@ -156,7 +156,7 @@ contract MerkleClaimTest is Test {
         claim.transferAssets(assets, amounts, address(this));
         for (uint256 i; i < amounts.length; ++i) {
             // assert not that these amounts are equal but rather that they modulo to zero...
-            // This is because an address can be delt multiple times, with the same token amount
+            // This is because an address can be dealt multiple times, with the same token amount
             // That's why this is also valid if 2x or 3x the amounts are received as it's withdrawn in 2 instances in the transferAssets arrays
             assertEq(ERC20(assets[i]).balanceOf(address(this)) % amounts[i], 0, "Tokens not received");
         }
