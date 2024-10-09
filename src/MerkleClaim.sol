@@ -29,7 +29,7 @@ contract MerkleClaim is Ownable2Step{
 
     event Unpause();
 
-    event Claim(address user, address[] assets, uint256[] amounts);
+    event Claim(address indexed user, address[] assets, uint256[] amounts);
 
     event PendingPeriodChange(uint256 newPendingPeriod);
 
