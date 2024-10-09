@@ -34,8 +34,8 @@ contract MerkleClaim is Ownable2Step{
     event PendingPeriodChange(uint256 newPendingPeriod);
 
     event SetPauseRole(address pauser);
-
-    uint128 constant MIN_PENDING_PERIOD = 1 hours;
+    
+    uint128 constant public MIN_PENDING_PERIOD = 1 hours;
 
     // Internal but will have a getter provided.
     bytes32 internal _root;
