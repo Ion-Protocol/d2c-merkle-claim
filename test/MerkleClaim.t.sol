@@ -4,6 +4,7 @@ pragma solidity =0.8.21;
 import {Test, console} from "forge-std/Test.sol";
 import "src/MerkleClaim.sol";
 import {ERC20} from "solady/tokens/ERC20.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 contract EXAMPLEERC20 is ERC20 {
     /// @dev Returns the name of the token.
@@ -102,12 +103,12 @@ contract MerkleClaimTest is Test {
 
         // pauser cannot unpause
         vm.prank(pauser);
-        vm.expectRevert(OWNER_ONLY.selector);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, pauser));
         claim.unpause();
 
         // attacker cannot unpause
         vm.prank(ROOT_ROLE);
-        vm.expectRevert(OWNER_ONLY.selector);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, ROOT_ROLE));
         claim.unpause();
 
         // owner revokes the root role and sets a new one that publishes a new root
@@ -155,7 +156,7 @@ contract MerkleClaimTest is Test {
         claim.transferAssets(assets, amounts, address(this));
         for (uint256 i; i < amounts.length; ++i) {
             // assert not that these amounts are equal but rather that they modulo to zero...
-            // This is because an address can be delt multiple times, with the same token amount
+            // This is because an address can be dealt multiple times, with the same token amount
             // That's why this is also valid if 2x or 3x the amounts are received as it's withdrawn in 2 instances in the transferAssets arrays
             assertEq(ERC20(assets[i]).balanceOf(address(this)) % amounts[i], 0, "Tokens not received");
         }
@@ -185,7 +186,7 @@ contract MerkleClaimTest is Test {
 
         // pauser cannot unpause
         vm.prank(pauser);
-        vm.expectRevert(OWNER_ONLY.selector);
+        vm.expectRevert(abi.encodeWithSelector(Ownable.OwnableUnauthorizedAccount.selector, pauser));
         claim.unpause();
 
         // owner can unpause

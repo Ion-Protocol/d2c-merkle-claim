@@ -3,6 +3,7 @@ pragma solidity =0.8.21;
 
 import {SafeTransferLib} from "solady/utils/SafeTransferLib.sol";
 import {MerkleProofLib} from "solady/utils/MerkleProofLib.sol";
+import {Ownable2Step, Ownable} from "@openzeppelin/contracts/access/Ownable2Step.sol";
 
 error OWNER_ONLY();
 error ROOT_ROLE_ONLY();
@@ -15,10 +16,8 @@ error INVALID_PARAMS();
  * @notice A claim contract to allow reward distribution based on verified merkle leafs.
  * @custom:security-contact security@molecularlabs.io
  */
-contract MerkleClaim {
+contract MerkleClaim is Ownable2Step {
     using SafeTransferLib for address;
-
-    event NewOwner(address newOwner);
 
     event NewRootRole(address newRootRole);
 
@@ -30,11 +29,13 @@ contract MerkleClaim {
 
     event Unpause();
 
-    event Claim(address user, address[] assets, uint256[] amounts);
+    event Claim(address indexed user, address[] assets, uint256[] amounts);
 
     event PendingPeriodChange(uint256 newPendingPeriod);
 
-    uint128 constant MIN_PENDING_PERIOD = 1 hours;
+    event SetPauseRole(address pauser);
+
+    uint128 public constant MIN_PENDING_PERIOD = 1 hours;
 
     // Internal but will have a getter provided.
     bytes32 internal _root;
@@ -42,29 +43,18 @@ contract MerkleClaim {
     uint128 public pendingPeriod = MIN_PENDING_PERIOD;
     uint128 public lastPendingUpdate;
     bytes32 public pending;
-    address public owner;
     address public rootRole;
     bool public isPaused;
 
     mapping(address => bool) public hasPauseRole;
-    mapping(address => mapping(address => uint256)) public usersClaimedAmountOfAsset;
+    mapping(address user => mapping(address token => uint256)) public usersClaimedAmountOfAsset;
 
     /**
      * @param _rootRole address to receive the root role permission.
      */
-    constructor(address _rootRole) {
-        owner = msg.sender;
-        emit NewOwner(msg.sender);
+    constructor(address _rootRole) Ownable(msg.sender) {
         rootRole = _rootRole;
         emit NewRootRole(_rootRole);
-    }
-
-    modifier onlyOwner() {
-        if (msg.sender == owner) {
-            _;
-        } else {
-            revert OWNER_ONLY();
-        }
     }
 
     modifier whenNotPaused() {
@@ -101,6 +91,7 @@ contract MerkleClaim {
      */
     function setPauseRole(address _pauser, bool _hasPauseRole) external onlyOwner {
         hasPauseRole[_pauser] = _hasPauseRole;
+        emit SetPauseRole(_pauser);
     }
 
     /**
@@ -201,7 +192,7 @@ contract MerkleClaim {
      * @dev Public function to return root, returns pending root instead if the pending period has elapsed.
      */
     function root() public view returns (bytes32) {
-        if (pending == _root || block.timestamp < (lastPendingUpdate + pendingPeriod)) {
+        if (block.timestamp < (lastPendingUpdate + pendingPeriod) || pending == bytes32(0)) {
             return _root;
         }
         return pending;
